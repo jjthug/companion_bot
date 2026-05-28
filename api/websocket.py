@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, WebSocket, Query, WebSocketDisconnect
 from observability.logging import logger
 from prompt.builder import build_system_prompt
@@ -23,7 +25,7 @@ async def websocket_connect(websocket: WebSocket, user_id: str, token: str = Que
     # except AuthError:
     #     await websocket.close(code=4001)
     #     return
-    
+
     llm_service = LLMService(
         api_key=settings.gemini_api_key,
         model_name=settings.llm_model,
@@ -54,24 +56,37 @@ async def websocket_connect(websocket: WebSocket, user_id: str, token: str = Que
                 break
 
             if "text" in message:
-                data= json.loads(message["text"])
+                data = json.loads(message["text"])
+
                 transcript = data.get("content")
-                audio_bytes=None
-                input_type="text"
+                audio_bytes = None
+
             elif "bytes" in message:
-                audio_bytes=message["bytes"]
-                transcript=None
-                input_type="audio"
+                audio_bytes = message["bytes"]
+                transcript = None
 
             user_profile={}
             seven_day_summary="Nothing"
 
             response_chunks: list[str] = []
+            session_turns = []
+            if transcript:
+                session_turns.append(
+                    {
+                        "role": "user",
+                        "content": transcript,
+                    }
+                )
             system_prompt = build_system_prompt(user_profile, session_turns, seven_day_summary)
-            session_turns=[{"role": "user", "content": transcript}]
 
+            
             async def llm_stream():
-                async for part in llm_service.generate_streaming(system_prompt, session_turns):
+                async for part in llm_service.generate_streaming(
+                    system_prompt=system_prompt,
+                    conversation_history=session_turns,
+                    audio_bytes=audio_bytes,
+                    audio_mime_type="audio/webm",
+                ):
                     response_chunks.append(part)
                     yield part
 

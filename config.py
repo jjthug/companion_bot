@@ -13,9 +13,9 @@ class Settings(BaseSettings):
     summary_ttl_seconds: int = 86_400
     tts_voice: str = "en-US-Journey-F"
     tts_audio_encoding: str = "MP3"
-    llm_model: str = "gemini-2.5-pro"
-    llm_max_tokens: int = 512
-    llm_temperature: float = 0.85
+    llm_model: str
+    llm_max_tokens: int
+    llm_temperature: float = 0.25
     log_level: str = "INFO"
 
     service_name: str = "companion-backend"
