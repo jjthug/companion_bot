@@ -3,11 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
-
-try:
-    import google.generativeai as genai
-except ImportError:  # pragma: no cover
-    genai = None  # type: ignore[assignment]
+import google.genai as genai
 
 
 class LLMService:

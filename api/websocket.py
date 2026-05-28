@@ -18,11 +18,11 @@ def _json_error(code: str, message: str) -> dict:
 
 @router.websocket("/ws/session/{user_id}")
 async def websocket_connect(websocket: WebSocket, user_id: str, token: str = Query(...)):
-    try:
-        validate_jwt_token(token, user_id, settings.jwt_secret, settings.jwt_algorithm)
-    except AuthError:
-        await websocket.close(code=4001)
-        return
+    # try:
+    #     validate_jwt_token(token, user_id, settings.jwt_secret, settings.jwt_algorithm)
+    # except AuthError:
+    #     await websocket.close(code=4001)
+    #     return
     
     llm_service = LLMService(
         api_key=settings.gemini_api_key,

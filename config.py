@@ -4,9 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    google_cloud_project: str = ""
-    google_application_credentials: str = ""
-    gemini_api_key: str = ""
+    google_cloud_project: str
+    google_application_credentials: str
+    gemini_api_key: str
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
     session_ttl_seconds: int = 14_400
