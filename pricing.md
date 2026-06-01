@@ -8,24 +8,33 @@ llm (gemini 2.5-flash) with gsearch, news, weather apis
 ---------
 cloud run => 10$
 postgres db => 15$
-redis => 0.02 per user at 1 hr/day => 2$
-TOTAL => 30$+300$= 350$
-PRICE => 1200
-APPLE TAX = 30%
-NET => 500$
+redis => 35$
+TOTAL => 60$
+
+100 users => 500$
+
 
 30 min/ day:
-cost llm => 3$/month
-llm tools like gsearch, news, weather apis => ?
+============
+LLM+context+tools(gsearch,weather,news)
+200k + 150k + 20k tokens = 500k tokens => 0.15 + 0.05 => 0.2$/30 min => 6$/month
+
 cloud run => 0.1$
 redis => 0.1$
 postgres => 0.2$
-total cost => 3.5$
+total cost => 7$
 
-price => 12$
-apple cut => 4$
+price => 18$ => 17.99$
+apple cut => 6$
 net => 5$
 
 
-1 hr/day 
-cost => 7$/month:
+1 hr/day
+========
+LLM+context+tools(gsearch,weather,news)
+1.1 M tokens => 0.5$/hr => 15$/month
+services=1$
+price=30$
+apple=9$
+net=5$
+

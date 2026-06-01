@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
+from contextlib import suppress
+import time
+from observability.tracing import tracer
 from typing import Any
 
 from google import genai
 from google.genai import types
-
+from opentelemetry.trace import Status, StatusCode
+from observability.metrics import llm_first_token
 
 class LLMService:
     def __init__(
@@ -88,66 +92,93 @@ class LLMService:
         audio_bytes: bytes | None = None,
         audio_mime_type: str = "audio/webm",
     ) -> AsyncGenerator[str, None]:
+        with tracer.start_as_current_span("companion.llm.generate") as span:
+            start = time.monotonic()
+            first_token_recorded = False
+            total_chars = 0
 
-        loop = asyncio.get_running_loop()
-        queue: asyncio.Queue[str | None] = asyncio.Queue()
+            loop = asyncio.get_running_loop()
+            queue: asyncio.Queue[str | Exception | None] = asyncio.Queue()
 
-        contents = self._build_contents(
-            system_prompt=system_prompt,
-            conversation_history=conversation_history,
-            audio_bytes=audio_bytes,
-            audio_mime_type=audio_mime_type,
-        )
+            contents = self._build_contents(
+                system_prompt=system_prompt,
+                conversation_history=conversation_history,
+                audio_bytes=audio_bytes,
+                audio_mime_type=audio_mime_type,
+            )
 
-        config = types.GenerateContentConfig(
-            temperature=self.temperature,
-            top_p=0.95,
-            max_output_tokens=self.max_tokens,
-        )
+            config = types.GenerateContentConfig(
+                temperature=self.temperature,
+                top_p=0.95,
+                max_output_tokens=self.max_tokens,
+            )
 
-        def worker() -> None:
+            # Set when the consumer exits early so the worker stops pushing
+            # into a queue nobody is draining.
+            cancelled = asyncio.Event()
+
+            def worker() -> None:
+                try:
+                    response_stream = self.client.models.generate_content_stream(
+                        model=self.model_name,
+                        contents=contents,
+                        config=config,
+                    )
+                    for chunk in response_stream:
+                        if cancelled.is_set():
+                            break
+                        text = getattr(chunk, "text", None)
+                        if text:
+                            loop.call_soon_threadsafe(
+                                queue.put_nowait,
+                                text,
+                            )
+                except Exception as exc:
+                    loop.call_soon_threadsafe(
+                        queue.put_nowait,
+                        exc,
+                    )
+
+                finally:
+                    loop.call_soon_threadsafe(
+                        queue.put_nowait,
+                        None,
+                    )
+
+            producer = asyncio.create_task(
+                asyncio.to_thread(worker)
+            )
+
             try:
-                response_stream = self.client.models.generate_content_stream(
-                    model=self.model_name,
-                    contents=contents,
-                    config=config,
-                )
+                while True:
+                    item = await queue.get()
 
-                for chunk in response_stream:
-                    text = getattr(chunk, "text", None)
+                    if item is None:
+                        break
 
-                    if text:
-                        loop.call_soon_threadsafe(
-                            queue.put_nowait,
-                            text,
-                        )
+                    if isinstance(item, Exception):   # re-raise real errors
+                        span.record_exception(item)
+                        span.set_status(Status(StatusCode.ERROR))
+                        raise item
 
-            except Exception as exc:
-                loop.call_soon_threadsafe(
-                    queue.put_nowait,
-                    exc,
-                )
+                    if not first_token_recorded:
+                        ttft_ms = (time.monotonic() - start) * 1000
+                        span.set_attribute("llm.first_token_ms", int(ttft_ms))
+                        llm_first_token.record(ttft_ms, {"model": self.model_name})
+                        first_token_recorded = True
+                    
+                    total_chars += len(item)
 
+                    yield item
+                if not first_token_recorded:
+                    span.set_attribute("llm.empty_response", True)
             finally:
-                loop.call_soon_threadsafe(
-                    queue.put_nowait,
-                    None,
-                )
-
-        producer = asyncio.create_task(
-            asyncio.to_thread(worker)
-        )
-
-        try:
-            while True:
-                item = await queue.get()
-
-                if item is None:
-                    break
-
-                if isinstance(item, Exception):   # re-raise real errors
-                    raise item
-
-                yield item
-        finally:
-            await producer
+                cancelled.set()
+                producer.cancel()
+                with suppress(asyncio.CancelledError):
+                    await producer
+                span.set_attribute("llm.response_chars", total_chars)
+                if first_token_recorded:
+                    total_ms = (time.monotonic() - start) * 1000
+                    span.set_attribute("llm.total_ms", int(total_ms))
+                

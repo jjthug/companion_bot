@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.25
     log_level: str = "INFO"
 
+    otlp_endpoint: str
+    otlp_insecure: bool
+
+    postgres_pooler_url: str
+
+    redis_url: str
+
     service_name: str = "companion-backend"
 
     default_daily_limit_seconds: int = 1800
@@ -25,6 +32,8 @@ class Settings(BaseSettings):
     quota_tick_interval_seconds: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    environment: str
 
 
 settings = Settings()
