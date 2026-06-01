@@ -1,0 +1,17 @@
+gcloud run deploy companion-backend \
+    --source . \
+    --region us-central1 \
+    --execution-environment gen2 \
+    --timeout 3600 \
+    --concurrency 25 \
+    --cpu 1 \
+    --memory 1Gi \
+    --cpu-always-allocated \
+    --cpu-boost \
+    --min-instances 1 \
+    --max-instances 10 \
+    --service-account companion-sa@PROJECT.iam.gserviceaccount.com \
+    --set-env-vars LOG_LEVEL=INFO \
+    --vpc-connector YOUR_CONNECTOR \
+    --vpc-egress private-ranges-only \
+    --allow-unauthenticated

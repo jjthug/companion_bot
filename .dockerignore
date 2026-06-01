@@ -1,0 +1,28 @@
+# Secrets & local config — never bake these into the image
+.env
+.env.*
+*.json.key
+service-account*.json
+credentials*.json
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# VCS & editor
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# Local/dev artifacts
+*.log
+*.db
+tests/
+README.md
