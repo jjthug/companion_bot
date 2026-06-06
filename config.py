@@ -35,5 +35,4 @@ class Settings(BaseSettings):
 
     environment: str
 
-
 settings = Settings()
