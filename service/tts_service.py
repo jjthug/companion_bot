@@ -12,7 +12,7 @@ from opentelemetry.trace import Status, StatusCode
 class TTSService:
     def __init__(
         self,
-        voice_name: str = "en-US-Journey-F",
+        voice_name: str,
     ):
         self.voice_name = voice_name
 

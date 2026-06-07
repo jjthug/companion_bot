@@ -7,16 +7,27 @@ class Settings(BaseSettings):
     google_cloud_project: str
     google_application_credentials: str
     gemini_api_key: str
+
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
+
     session_ttl_seconds: int = 14_400
     summary_ttl_seconds: int = 86_400
-    tts_voice: str = "en-US-Journey-F"
+
+    tts_voice: str
     tts_audio_encoding: str = "MP3"
+
     llm_model: str
     llm_max_tokens: int
-    llm_temperature: float = 0.25
+    llm_temperature: float
+    llm_input_cost_per_token: float
+    llm_output_cost_per_token: float
     log_level: str = "INFO"
+
+    tts_voice: str
+    tts_pricing_per_token: float
+
+    stt_pricing_per_token: float
 
     otlp_endpoint: str
     otlp_insecure: bool
