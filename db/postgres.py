@@ -1,5 +1,4 @@
 import asyncio
-
 import asyncpg
 
 async def create_postgres_pool(dsn: str):
@@ -11,7 +10,6 @@ async def create_postgres_pool(dsn: str):
         max_inactive_connection_lifetime=300,
         statement_cache_size=0,  # required for PgBouncer transaction mode
     )
-
 
 async def close_postgres_pool(pool) -> None:
     if pool is None:

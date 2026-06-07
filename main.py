@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-
 import uvicorn
 from config import settings
 from api.websocket import router as websocket_router
@@ -7,6 +6,7 @@ from config import settings
 from fastapi import FastAPI
 from db.postgres import close_postgres_pool, create_postgres_pool
 from db.redis import close_redis_client, create_redis_client
+from migrations import run_migrations
 from observability.logging import configure_logging
 from observability.metrics import setup_metrics
 from observability.tracing import setup_tracing
@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     try:
         app.state.postgres_pool = await create_postgres_pool(settings.postgres_pooler_url)
         app.state.redis = await create_redis_client(settings.redis_url)
+        await run_migrations(app.state.postgres_pool)
         yield
     finally:
         await close_redis_client(app.state.redis)
@@ -42,16 +43,17 @@ async def lifespan(app: FastAPI):
         app.state.meter_provider.shutdown()    # flushes final metric window
         app.state.tracer_provider.shutdown()   # flushes BatchSpanProcessor
 
-app = FastAPI(title="Companion Backend", lifespan=lifespan)
+
+app = FastAPI(title="Companion", lifespan=lifespan)
 app.include_router(websocket_router)
 
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok", "service": settings.service_name}
 
-@app.get("/healthz/config")
-async def config_check():
-    return {"credentials_loaded": bool(settings.google_application_credentials)}
+# @app.get("/healthz/config")
+# async def config_check():
+#     return {"credentials_loaded": bool(settings.google_application_credentials)}
 
 if __name__ == "__main__":
     import os
