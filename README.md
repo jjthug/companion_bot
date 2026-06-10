@@ -1,5 +1,9 @@
-Companion for Seniors
+# Companion for Seniors
 
-Run server
+## Run App Locally
 
-'uvicorn main:app --reload'
+Start the application using Docker Compose:
+
+```bash
+docker compose up -d
+```
